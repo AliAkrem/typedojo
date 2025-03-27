@@ -381,7 +381,7 @@ class _TypingTestScreenState extends State<TypingTestScreen> {
           padding: const EdgeInsets.only(top: 8.0),
           child: LinearProgressIndicator(
             value: testService.getSegmentProgress(),
-            backgroundColor: Theme.of(context).colorScheme.surfaceVariant,
+            backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
             valueColor: AlwaysStoppedAnimation<Color>(
               Theme.of(context).colorScheme.primary,
             ),
@@ -547,7 +547,7 @@ class _TypingTestScreenState extends State<TypingTestScreen> {
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-        builder: (context) => ResultsScreen(forceRefresh: true),
+        builder: (context) => const ResultsScreen(forceRefresh: true),
       ),
     );
   }

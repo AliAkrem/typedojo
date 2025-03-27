@@ -29,7 +29,7 @@ class HomeScreen extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 // Logo or App Name
-                Icon(
+                const Icon(
                   Icons.keyboard,
                   size: 80,
                   color: Colors.white,
@@ -37,7 +37,7 @@ class HomeScreen extends StatelessWidget {
                 const SizedBox(height: 20),
                 
                 // Title
-                Text(
+                const Text(
                   'TypeDojo',
                   style: TextStyle(
                     fontSize: 40,

@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:typedojo/models/test_result.dart';
 import 'package:typedojo/models/settings_model.dart';
 import 'package:typedojo/services/database_helper.dart';
@@ -23,7 +22,7 @@ class TypingTestService extends ChangeNotifier {
   // For segmented text display
   List<String> _textSegments = [];
   int _currentSegmentIndex = 0;
-  int _segmentSize = 6; // Words per segment
+  final int _segmentSize = 6; // Words per segment
   int _totalTypedWords = 0; // Track total words typed across segments
   int _totalErrorCount = 0; // Track total errors across segments
   

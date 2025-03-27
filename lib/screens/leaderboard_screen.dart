@@ -240,9 +240,9 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> with SingleTicker
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
           color: isDarkMode ? Colors.black.withOpacity(0.5) : Colors.blue.shade700,
-          child: Row(
+          child: const Row(
             children: [
-              const SizedBox(width: 50), // Space for rank
+              SizedBox(width: 50), // Space for rank
               Expanded(
                 flex: 2,
                 child: Text(
@@ -365,7 +365,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> with SingleTicker
             child: ExpansionTile(
               leading: CircleAvatar(
                 backgroundColor: _getTestResultColor(result, isDarkMode),
-                child: Icon(
+                child: const Icon(
                   Icons.keyboard,
                   color: Colors.white,
                 ),
@@ -468,7 +468,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> with SingleTicker
                         ),
                         _buildLargeStatItem(
                           'Average WPM',
-                          '${(_stats['avgWpm'] as double).toStringAsFixed(1)}',
+                          (_stats['avgWpm'] as double).toStringAsFixed(1),
                           Icons.trending_up,
                           Colors.amber,
                           isDarkMode,
@@ -593,13 +593,13 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> with SingleTicker
   }
   
   Widget _buildLoadingState() {
-    return Center(
+    return const Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const CircularProgressIndicator(),
-          const SizedBox(height: 20),
-          const Text(
+          CircularProgressIndicator(),
+          SizedBox(height: 20),
+          Text(
             'Loading data...',
             style: TextStyle(
               fontSize: 16,
@@ -687,7 +687,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> with SingleTicker
         leading: CircleAvatar(
           backgroundColor: _getMedalColor(rank),
           child: isTopThree 
-            ? Icon(
+            ? const Icon(
                 Icons.emoji_events,
                 color: Colors.white,
                 size: 20,
