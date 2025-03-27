@@ -10,7 +10,7 @@ A typing practice application built with Flutter that helps users improve their 
 - **Customizable Settings**: Adjust themes, difficulty levels, and test parameters
 - **Dark/Light Mode**: Switch between themes based on your preference
 
-## Screenshots
+<!-- ## Screenshots
 
 ### Home Screen
 ![Home Screen](screenshots/home_screen.png)
@@ -22,7 +22,7 @@ A typing practice application built with Flutter that helps users improve their 
 ![Statistics](screenshots/statistics.png)
 
 ### Settings
-![Settings](screenshots/settings.png)
+![Settings](screenshots/settings.png) -->
 
 ## Getting Started
 
@@ -61,7 +61,7 @@ flutter run
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the  GPL-3.0 License - see the LICENSE file for details.
 
 ## Acknowledgments
 
