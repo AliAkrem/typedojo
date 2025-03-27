@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:typedojo/models/settings_model.dart';
@@ -15,6 +17,9 @@ class _TypingTestScreenState extends State<TypingTestScreen> {
   final TextEditingController _textController = TextEditingController();
   late TypingTestService _testService;
   bool _isInitialized = false;
+  bool _isCountdown = true;
+  int _countdownValue = 3;
+  late Timer _countdownTimer;
 
   @override
   void initState() {
@@ -30,6 +35,9 @@ class _TypingTestScreenState extends State<TypingTestScreen> {
     if (_testService.isTestActive) {
       _testService.endTest();
     }
+        if (_isCountdown) {
+      _countdownTimer.cancel();
+    }
     super.dispose();
   }
 
@@ -39,15 +47,47 @@ class _TypingTestScreenState extends State<TypingTestScreen> {
     await _testService.initialize(settings);
     _testService.resetTest();
     
+    // Start countdown
+    _startCountdown();
+
     setState(() {
       _isInitialized = true;
+    });
+  }
+
+  void _startCountdown() {
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      setState(() {
+        _countdownValue--;
+        if (_countdownValue <= 0) {
+          _isCountdown = false;
+          _countdownTimer.cancel();
+          _textController.clear();
+        }
+      });
     });
   }
 
   void _startTest() {
     final settings = Provider.of<SettingsModel>(context, listen: false);
     _textController.clear();
+    // Only reset and start the timer here
+    _testService.resetTest();
     _testService.startTest(settings.durationInSeconds);
+    _testService.addListener(_checkTimeUp);
+  }
+
+  void _checkTimeUp() {
+    if (_testService.timeRemaining <= 0 && !_testService.isTestActive) {
+      // Remove listener to prevent multiple navigations
+      _testService.removeListener(_checkTimeUp);
+      // Navigate with a slight delay to allow state to update
+      Future.delayed(const Duration(milliseconds: 100), () {
+        if (mounted) {
+          _navigateToResults();
+        }
+      });
+    }
   }
 
   @override
@@ -61,94 +101,97 @@ class _TypingTestScreenState extends State<TypingTestScreen> {
       ),
       body: !_isInitialized
           ? const Center(child: CircularProgressIndicator())
-          : Consumer<TypingTestService>(
-              builder: (context, testService, child) {
-                return Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      // Test info bar
-                      _buildInfoBar(testService),
-                      const SizedBox(height: 16),
-                      
-                      // Text to type
-                      _buildTextDisplay(testService),
-                      const SizedBox(height: 24),
-                      
-                      // Input field
-                      TextField(
-                        controller: _textController,
-                        decoration: InputDecoration(
-                          hintText: 'Start typing here...',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          filled: true,
-                          fillColor: settings.isDarkMode 
-                              ? Colors.grey.shade800 
-                              : Colors.grey.shade100,
-                        ),
-                        style: TextStyle(
-                          fontSize: 18,
-                          color: settings.isDarkMode
-                              ? Colors.white
-                              : Colors.black,
-                        ),
-                        maxLines: 5,
-                        onChanged: (value) {
-                          testService.updateUserInput(value);
-                          
-                          if (testService.timeRemaining <= 0) {
-                            _navigateToResults();
-                          }
-                        },
-                        autofocus: true,
-                      ),
-                      const SizedBox(height: 24),
-                      
-                      // Action buttons
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          : _isCountdown 
+              ? _buildCountdown()
+              : Consumer<TypingTestService>(
+                  builder: (context, testService, child) {
+                    return Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          ElevatedButton.icon(
-                            icon: const Icon(Icons.replay),
-                            label: const Text('Restart Test'),
-                            onPressed: () {
-                              _startTest();
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.orange,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 20,
-                                vertical: 12,
+                          // Test info bar
+                          _buildInfoBar(testService),
+                          const SizedBox(height: 16),
+                          
+                          // Text to type
+                          _buildTextDisplay(testService),
+                          const SizedBox(height: 24),
+                          
+                          // Input field
+                          TextField(
+                            controller: _textController,
+                            decoration: InputDecoration(
+                              hintText: 'Start typing here...',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
                               ),
+                              filled: true,
+                              fillColor: settings.isDarkMode 
+                                  ? Colors.grey.shade800 
+                                  : Colors.grey.shade100,
                             ),
+                            style: TextStyle(
+                              fontSize: 18,
+                              color: settings.isDarkMode
+                                  ? Colors.white
+                                  : Colors.black,
+                            ),
+                            maxLines: 5,
+                            onChanged: (value) {
+                              // If this is the first input and test isn't active, start it
+                              if (value.isNotEmpty && !testService.isTestActive) {
+                                _startTest();
+                              }
+                              
+                              testService.updateUserInput(value);
+                            },
+                            autofocus: true,
                           ),
-                          ElevatedButton.icon(
-                            icon: const Icon(Icons.stop),
-                            label: const Text('End Test'),
-                            onPressed: () {
-                              testService.endTest();
-                              _navigateToResults();
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.red,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 20,
-                                vertical: 12,
+                          const SizedBox(height: 24),
+                          
+                          // Action buttons
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              ElevatedButton.icon(
+                                icon: const Icon(Icons.replay),
+                                label: const Text('Restart Test'),
+                                onPressed: () {
+                                  _startTest();
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.orange,
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 20,
+                                    vertical: 12,
+                                  ),
+                                ),
                               ),
-                            ),
+                              ElevatedButton.icon(
+                                icon: const Icon(Icons.stop),
+                                label: const Text('End Test'),
+                                onPressed: () {
+                                  testService.endTest();
+                                  _navigateToResults();
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.red,
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 20,
+                                    vertical: 12,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
-                    ],
-                  ),
-                );
-              },
-            ),
+                    );
+                  },
+                ),
     );
   }
 
@@ -233,12 +276,18 @@ class _TypingTestScreenState extends State<TypingTestScreen> {
     List<TextSpan> spans = [];
     
     final List<String> targetWords = textToType.split(' ');
-    final List<String> typedWords = userInput.split(' ');
+    List<String> typedWords = userInput.split(' ');
+    
+    // Handle the case when user has just typed a space (creating a new empty word at the end)
+    if (userInput.endsWith(' ')) {
+      // Add empty string to properly track current position
+      typedWords.add('');
+    }
     
     for (int i = 0; i < targetWords.length; i++) {
-      if (i < typedWords.length) {
-        // Word has been typed
-        final bool isCorrect = targetWords[i] == typedWords[i];
+      if (i < typedWords.length - 1 || (userInput.endsWith(' ') && i == typedWords.length - 2)) {
+        // Words already fully typed (completed by space)
+        final bool isCorrect = i < typedWords.length && targetWords[i] == typedWords[i];
         spans.add(
           TextSpan(
             text: '${targetWords[i]} ',
@@ -248,8 +297,27 @@ class _TypingTestScreenState extends State<TypingTestScreen> {
             ),
           ),
         );
-      } else if (i == typedWords.length) {
-        // Current word to type
+      } else if (i == typedWords.length - 1 && !userInput.endsWith(' ')) {
+        // Current word being typed (not completed with space yet)
+        String currentWord = typedWords[i];
+        String targetWord = targetWords[i];
+        
+        // Check if the current typed characters match so far
+        bool isCurrentCorrect = targetWord.startsWith(currentWord);
+        
+        spans.add(
+          TextSpan(
+            text: '${targetWords[i]} ',
+            style: TextStyle(
+              color: isCurrentCorrect ? Colors.green : Colors.red,
+              fontWeight: FontWeight.bold,
+              decoration: TextDecoration.underline,
+              decorationThickness: 2,
+            ),
+          ),
+        );
+      } else if (i == typedWords.length - 1 && userInput.endsWith(' ')) {
+        // Next word to type (after space)
         spans.add(
           TextSpan(
             text: '${targetWords[i]} ',
@@ -277,6 +345,33 @@ class _TypingTestScreenState extends State<TypingTestScreen> {
           color: Theme.of(context).colorScheme.onSurface,
         ),
         children: spans,
+      ),
+    );
+  }
+
+  Widget _buildCountdown() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            'Get Ready!',
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+          ),
+          const SizedBox(height: 20),
+          Text(
+            '$_countdownValue',
+            style: TextStyle(
+              fontSize: 72,
+              fontWeight: FontWeight.bold,
+              color: Theme.of(context).colorScheme.secondary,
+            ),
+          ),
+        ],
       ),
     );
   }

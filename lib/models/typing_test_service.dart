@@ -97,6 +97,8 @@ class TypingTestService extends ChangeNotifier {
 
   // Start the test
   void startTest(int durationInSeconds) {
+    if (_isTestActive) return; // Prevent multiple starts
+    
     _isTestActive = true;
     _userInput = '';
     _errorCount = 0;
@@ -120,11 +122,6 @@ class TypingTestService extends ChangeNotifier {
 
   // Update user input
   void updateUserInput(String input) {
-    if (!_isTestActive && input.isNotEmpty) {
-      _startTime = DateTime.now();
-      _isTestActive = true;
-    }
-    
     _userInput = input;
     _calculateErrors();
     _calculateWPM();
@@ -137,8 +134,16 @@ class TypingTestService extends ChangeNotifier {
     final inputWords = _userInput.split(' ');
     final targetWords = _currentText.split(' ');
     
-    for (int i = 0; i < inputWords.length && i < targetWords.length; i++) {
-      if (inputWords[i] != targetWords[i]) {
+    // Skip the last word if it's incomplete (no space after it)
+    int wordsToCheck = _userInput.endsWith(' ') 
+        ? inputWords.length 
+        : inputWords.length - 1;
+    
+    // Make sure we're not checking more words than are available
+    wordsToCheck = wordsToCheck.clamp(0, targetWords.length);
+    
+    for (int i = 0; i < wordsToCheck; i++) {
+      if (i < targetWords.length && inputWords[i] != targetWords[i]) {
         _errorCount++;
       }
     }
