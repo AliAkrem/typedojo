@@ -3,9 +3,18 @@ import 'package:provider/provider.dart';
 import 'package:typedojo/models/settings_model.dart';
 import 'package:typedojo/models/typing_test_service.dart';
 import 'package:typedojo/screens/home_screen.dart';
+import 'package:typedojo/services/database_helper.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize database
+  try {
+    await DatabaseHelper.instance.database;
+    print('Database initialized successfully');
+  } catch (e) {
+    print('Error initializing database: $e');
+  }
   
   // Initialize settings
   final settingsModel = SettingsModel();

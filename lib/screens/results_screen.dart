@@ -3,87 +3,159 @@ import 'package:provider/provider.dart';
 import 'package:typedojo/models/test_result.dart';
 import 'package:typedojo/models/typing_test_service.dart';
 import 'package:typedojo/models/settings_model.dart';
+import 'package:typedojo/services/database_helper.dart';
 
-class ResultsScreen extends StatelessWidget {
-  const ResultsScreen({super.key});
+class ResultsScreen extends StatefulWidget {
+  final bool forceRefresh;
+  
+  const ResultsScreen({super.key, this.forceRefresh = false});
+
+  @override
+  State<ResultsScreen> createState() => _ResultsScreenState();
+}
+
+class _ResultsScreenState extends State<ResultsScreen> {
+  bool _isLoading = true;
+  TestResult? _latestResult;
+  List<TestResult> _topResults = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadResults();
+  }
+
+  Future<void> _loadResults() async {
+    try {
+      setState(() {
+        _isLoading = true;
+      });
+      
+      // Load directly from the database
+      final dbHelper = DatabaseHelper.instance;
+      
+      // If forceRefresh is true, wait a short delay to ensure DB write operation is complete
+      if (widget.forceRefresh) {
+        await Future.delayed(const Duration(milliseconds: 300));
+      }
+      
+      // Get all results ordered by timestamp (most recent first)
+      final results = await dbHelper.getTestResults();
+      
+      // Get top results by WPM
+      final topResults = await dbHelper.getTopResults(5);
+      
+      setState(() {
+        if (results.isNotEmpty) {
+          _latestResult = results.first; // Most recent result
+          print('Loaded latest result: WPM=${_latestResult!.wordsPerMinute}, Accuracy=${_latestResult!.accuracy}');
+        } else {
+          print('No results found in the database.');
+        }
+        _topResults = topResults;
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('Error loading results: $e');
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final settings = Provider.of<SettingsModel>(context);
-    final testService = Provider.of<TypingTestService>(context);
+    final testService = Provider.of<TypingTestService>(context, listen: false);
+    
+    // If the test service has a result but we don't, use it
+    if (_latestResult == null && testService.pastResults.isNotEmpty) {
+      _latestResult = testService.pastResults.first;
+    }
     
     return Scaffold(
       appBar: AppBar(
         title: const Text('Test Results'),
         backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-      ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: settings.isDarkMode
-                ? [Colors.blueGrey.shade900, Colors.black]
-                : [Colors.blue.shade100, Colors.blue.shade300],
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _loadResults,
+            tooltip: 'Refresh results',
           ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Result card
-              _buildResultCard(context, testService),
-              const SizedBox(height: 24),
-              
-              // High scores
-              _buildHighScoresCard(context, testService),
-              const SizedBox(height: 32),
-              
-              // Action buttons
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  ElevatedButton.icon(
-                    icon: const Icon(Icons.replay),
-                    label: const Text('Try Again'),
-                    onPressed: () {
-                      Navigator.pop(context);
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 12,
-                      ),
-                    ),
+        ],
+      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: settings.isDarkMode
+                        ? [Colors.blueGrey.shade900, Colors.black]
+                        : [Colors.blue.shade100, Colors.blue.shade300],
                   ),
-                  ElevatedButton.icon(
-                    icon: const Icon(Icons.home),
-                    label: const Text('Home'),
-                    onPressed: () {
-                      Navigator.popUntil(context, (route) => route.isFirst);
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 12,
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // Result card
+                      _buildResultCard(context),
+                      const SizedBox(height: 24),
+                      
+                      // High scores
+                      _buildHighScoresCard(context),
+                      const SizedBox(height: 32),
+                      
+                      // Action buttons
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          ElevatedButton.icon(
+                            icon: const Icon(Icons.replay),
+                            label: const Text('Try Again'),
+                            onPressed: () {
+                              Navigator.pop(context);
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.green,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 24,
+                                vertical: 12,
+                              ),
+                            ),
+                          ),
+                          ElevatedButton.icon(
+                            icon: const Icon(Icons.home),
+                            label: const Text('Home'),
+                            onPressed: () {
+                              Navigator.popUntil(context, (route) => route.isFirst);
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blue,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 24,
+                                vertical: 12,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
+                    ],
                   ),
-                ],
+                ),
               ),
-            ],
-          ),
-        ),
-      ),
+            ),
     );
   }
 
-  Widget _buildResultCard(BuildContext context, TypingTestService testService) {
+  Widget _buildResultCard(BuildContext context) {
     return Card(
       elevation: 5,
       shape: RoundedRectangleBorder(
@@ -99,46 +171,52 @@ class ResultsScreen extends StatelessWidget {
             ),
             const SizedBox(height: 24),
             
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildResultItem(
-                  context,
-                  'WPM',
-                  '${testService.wordsPerMinute}',
-                  Icons.speed,
-                  Colors.blue,
-                ),
-                _buildResultItem(
-                  context,
-                  'Accuracy',
-                  '${_calculateAccuracy(testService).toStringAsFixed(1)}%',
-                  Icons.check_circle_outline,
-                  Colors.green,
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildResultItem(
-                  context,
-                  'Total Words',
-                  '${_calculateTotalWords(testService)}',
-                  Icons.text_fields,
-                  Colors.orange,
-                ),
-                _buildResultItem(
-                  context,
-                  'Errors',
-                  '${testService.errorCount}',
-                  Icons.error_outline,
-                  Colors.red,
-                ),
-              ],
-            ),
+            _latestResult == null
+                ? const Text('No results available')
+                : Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: [
+                          _buildResultItem(
+                            context,
+                            'WPM',
+                            '${_latestResult!.wordsPerMinute}',
+                            Icons.speed,
+                            Colors.blue,
+                          ),
+                          _buildResultItem(
+                            context,
+                            'Accuracy',
+                            '${_latestResult!.accuracy.toStringAsFixed(1)}%',
+                            Icons.check_circle_outline,
+                            Colors.green,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                      
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: [
+                          _buildResultItem(
+                            context,
+                            'Total Words',
+                            '${_latestResult!.totalWords}',
+                            Icons.text_fields,
+                            Colors.orange,
+                          ),
+                          _buildResultItem(
+                            context,
+                            'Errors',
+                            '${_latestResult!.errorCount}',
+                            Icons.error_outline,
+                            Colors.red,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
           ],
         ),
       ),
@@ -180,10 +258,7 @@ class ResultsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildHighScoresCard(BuildContext context, TypingTestService testService) {
-    final List<TestResult> highScores = [...testService.pastResults]
-      ..sort((a, b) => b.wordsPerMinute.compareTo(a.wordsPerMinute));
-    
+  Widget _buildHighScoresCard(BuildContext context) {
     return Card(
       elevation: 3,
       shape: RoundedRectangleBorder(
@@ -202,7 +277,7 @@ class ResultsScreen extends StatelessWidget {
               ),
             ),
             
-            highScores.isEmpty
+            _topResults.isEmpty
                 ? const Center(
                     child: Padding(
                       padding: EdgeInsets.all(16.0),
@@ -217,9 +292,9 @@ class ResultsScreen extends StatelessWidget {
                 : SizedBox(
                     height: 150,
                     child: ListView.builder(
-                      itemCount: highScores.length > 5 ? 5 : highScores.length,
+                      itemCount: _topResults.length > 5 ? 5 : _topResults.length,
                       itemBuilder: (context, index) {
-                        final result = highScores[index];
+                        final result = _topResults[index];
                         return ListTile(
                           leading: CircleAvatar(
                             backgroundColor: _getPlaceColor(index),
@@ -278,16 +353,5 @@ class ResultsScreen extends StatelessWidget {
     } else {
       return '${date.day}/${date.month}/${date.year}';
     }
-  }
-
-  double _calculateAccuracy(TypingTestService testService) {
-    final totalTyped = _calculateTotalWords(testService);
-    if (totalTyped == 0) return 0.0;
-    
-    return ((totalTyped - testService.errorCount) / totalTyped * 100).clamp(0.0, 100.0);
-  }
-  
-  int _calculateTotalWords(TypingTestService testService) {
-    return testService.userInput.split(' ').length;
   }
 } 
