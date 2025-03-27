@@ -1,16 +1,69 @@
-# typedojo
+# TypeDojo
 
-A new Flutter project.
+A typing practice application built with Flutter that helps users improve their typing speed and accuracy.
+
+## Features
+
+- **Typing Tests**: Practice typing with customizable tests
+- **Progress Tracking**: Monitor your typing speed (WPM) and accuracy improvements over time
+- **Statistics**: View detailed statistics about your typing performance
+- **Customizable Settings**: Adjust themes, difficulty levels, and test parameters
+- **Dark/Light Mode**: Switch between themes based on your preference
+
+## Screenshots
+
+### Home Screen
+![Home Screen](screenshots/home_screen.png)
+
+### Typing Test
+![Typing Test](screenshots/typing_test.png)
+
+### Statistics
+![Statistics](screenshots/statistics.png)
+
+### Settings
+![Settings](screenshots/settings.png)
 
 ## Getting Started
 
-This project is a starting point for a Flutter application.
+### Prerequisites
+- Flutter SDK (version 3.4.3 or higher)
+- Dart SDK (version 3.4.3 or higher)
 
-A few resources to get you started if this is your first Flutter project:
+### Installation
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+1. Clone the repository
+```bash
+git clone https://github.com/yourusername/typedojo.git
+```
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+2. Navigate to the project directory
+```bash
+cd typedojo
+```
+
+3. Install dependencies
+```bash
+flutter pub get
+```
+
+4. Run the app
+```bash
+flutter run
+```
+
+## Technologies Used
+
+- Flutter
+- Provider for state management
+- SQLite for local database
+- Shared Preferences for settings storage
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Acknowledgments
+
+- Thanks to all contributors who have helped improve TypeDojo
+- Inspired by typing practice websites and applications
